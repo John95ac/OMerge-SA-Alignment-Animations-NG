@@ -7,11 +7,14 @@ cmake_minimum_required(VERSION 3.21)
 
 # [BEGIN set_project_name]
 # Set your project name. This will be the name of your SKSE .dll file.
-project(OMerge-Alignment-Animations-NG VERSION 0.0.1 LANGUAGES CXX)
+project(OMerge-SA-Alignment-Animations-NG VERSION 0.0.1 LANGUAGES CXX)
 # [END set_project_name]
 
 # Define the path to CommonLibSSE
 set(COMMONLIBSSE_PATH "E:/001 SKYRIM RESPALDO DEL RESPALDO/001_CODE/GitHub/CommonLibSSE-NG")
+
+# Define the path to RapidJSON
+set(RAPIDJSON_PATH "E:/001 SKYRIM RESPALDO DEL RESPALDO/001_CODE/GitHub/rapidjson 1.1.0")
 
 # If you're not using a mod manager, you probably want the SKSE plugin to go
 # inside of your Skyrim "Data" folder.
@@ -34,6 +37,9 @@ endif()
 
 # Add CommonLibSSE to your project
 set(CMAKE_PREFIX_PATH ${COMMONLIBSSE_PATH} ${CMAKE_PREFIX_PATH})
+
+# Add RapidJSON to your project
+include_directories(${RAPIDJSON_PATH}/include)
 
 # Setup your SKSE plugin as an SKSE plugin!
 find_package(CommonLibSSE CONFIG REQUIRED)
