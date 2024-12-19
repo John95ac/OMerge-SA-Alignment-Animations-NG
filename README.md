@@ -1,5 +1,4 @@
 # 📜 SKSE "OMerge SA Alignment Animations NG"
-"
 
 Ambitious SKSE DLL capable of automatically aliasing Ostim animations and packages, helping creators save a lot of time in Blender or other programs.
 
