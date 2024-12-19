@@ -1,26 +1,13 @@
-# 📜 SKSE "Mantella Adding NPCs Back History NG"
+# 📜 SKSE "OMerge SA Alignment Animations NG"
+"
 
-It's a simple yet powerful SKSE DLL that manages the character_overrides stories from the Mantella AI mod. It was created with the objective of allowing players and creators to create and share the stories of NPCs from the base game as mods for the Mantella AI mod.
+Ambitious SKSE DLL capable of automatically aliasing Ostim animations and packages, helping creators save a lot of time in Blender or other programs.
 
 ---
 
 # What does it do?
 
-Each time Skyrim is launched, the DLL will check if your installed mods contain a folder named "Mantella BackHistory". Within these, it will organize each story in .json format.
-
-The first action with this information is:
-
-Check if the character file exists in the folder "My Games\Mantella\data\Skyrim\character_overrides" on your PC. If it exists, it will update it with the version from the installed mod, assuming it is the most updated version.
-
-If the file does not exist in "My Games\Mantella\data\Skyrim\character_overrides", it will copy the version found in the mod folder "Mantella BackHistory".
-
-If the story exists in "My Games\Mantella\data\Skyrim\character_overrides" but not in any part of the mods in their respective folder "Mantella BackHistory", it will deduce that it was deactivated from the mod manager. Thus, the DLL will move this unmanaged character to a new folder called "Repository of Unused Characters" at the location "\My Games\Mantella\data\Skyrim\character_overrides\Repository of Unused Characters".
-
-While performing all these procedures at incredible speed, it will create a file named "Mantella-Adding-NPCs-Back-History-NG.log" at the location "\My Games\Mantella" and "\My Games\Skyrim Special Edition\SKSE" to keep a record of the files.
-
-Additionally, on the startup screen, it will generate a maintenance message when pressing ~. The first message will be "Mantella NPCs Back History loaded successfully > ^ < ."
-
-That's all for now.
+--- merge --- work in progress
 
 # Acknowledgements
 
