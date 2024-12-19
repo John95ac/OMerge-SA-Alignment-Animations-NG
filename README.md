@@ -21,5 +21,5 @@ Because this uses [CommonLibSSE NG](https://github.com/CharmedBaryon/CommonLibSS
 
 # Requirements
 
-- [Mantella - Bring NPCs to Life with AI](https://www.nexusmods.com/skyrimspecialedition/mods/98631)
+- [OStim Standalone - Advanced Adult Animation Framework](https://www.nexusmods.com/skyrimspecialedition/mods/98163)
 - [Address Library for SKSE Plugins](https://www.nexusmods.com/skyrimspecialedition/mods/32444)
