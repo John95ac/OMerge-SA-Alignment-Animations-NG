@@ -54,43 +54,45 @@ void CreateDirectoryIfNotExists(const std::string& path) {
     }
 }
 
-void SyncJsonFiles(const std::string& sourceFolder, const std::string& destinationFolder, std::ofstream& logFile) {
+void CopyOAlignment(const std::string& sourceFolder, const std::string& destinationFolder, std::ofstream& logFile) {
     try {
         if (!fs::exists(sourceFolder)) {
             logFile << "Source folder does not exist: " << sourceFolder << std::endl;
             return;
         }
 
-        // Crear un conjunto de nombres de archivos JSON en la carpeta de destino
-        std::set<std::string> destinationFiles;
-        for (const auto& entry : fs::directory_iterator(destinationFolder)) {
-            if (entry.path().extension() == ".json") {
-                destinationFiles.insert(entry.path().filename().string());
+        for (const auto& modderEntry : fs::directory_iterator(sourceFolder)) {
+            if (modderEntry.is_directory()) {
+                std::string modderName = modderEntry.path().filename().string();
+                logFile << modderName << std::endl;
+
+                for (const auto& packageEntry : fs::directory_iterator(modderEntry.path())) {
+                    if (packageEntry.is_directory()) {
+                        std::string packageName = packageEntry.path().filename().string();
+                        logFile << "  " << packageName << std::endl;
+
+                        std::string sourceFile = (packageEntry.path() / "alignment.json").string();
+                        std::string destinationFile =
+                            (fs::path(destinationFolder) / modderName / packageName / "alignment.json").string();
+                        CreateDirectoryIfNotExists(fs::path(destinationFile).parent_path().string());
+                        fs::copy_file(fs::path(sourceFile), fs::path(destinationFile),
+                                      fs::copy_options::overwrite_existing);
+
+                        // Convertir alignment.json a alignment.txt
+                        std::ifstream ifs(sourceFile);
+                        if (ifs.is_open()) {
+                            std::string txtFile =
+                                (fs::path(destinationFolder) / modderName / packageName / "alignment.txt").string();
+                            std::ofstream ofs(txtFile);
+                            if (ofs.is_open()) {
+                                ofs << ifs.rdbuf();
+                                ofs.close();
+                            }
+                            ifs.close();
+                        }
+                    }
+                }
             }
-        }
-
-        // Copiar o sobreescribir archivos JSON desde la carpeta de origen a la carpeta de destino
-        for (const auto& entry : fs::directory_iterator(sourceFolder)) {
-            if (entry.path().extension() == ".json") {
-                std::string sourceFile = entry.path().string();
-                std::string destinationFile =
-                    (fs::path(destinationFolder) / entry.path().filename()).make_preferred().string();
-                fs::copy_file(sourceFile, destinationFile, fs::copy_options::overwrite_existing);
-                logFile << "Copied: " << entry.path().filename().string() << std::endl;
-                destinationFiles.erase(entry.path().filename().string());
-            }
-        }
-
-        // Mover archivos JSON en la carpeta de destino que no existen en la carpeta de origen
-        std::string unusedCharactersFolder =
-            (fs::path(destinationFolder) / "Repository of Unused Characters").make_preferred().string();
-        CreateDirectoryIfNotExists(unusedCharactersFolder);
-
-        for (const auto& fileName : destinationFiles) {
-            std::string sourceFile = (fs::path(destinationFolder) / fileName).make_preferred().string();
-            std::string destinationFile = (fs::path(unusedCharactersFolder) / fileName).make_preferred().string();
-            fs::rename(sourceFile, destinationFile);
-            logFile << "Moved to Repository: " << fileName << std::endl;
         }
     } catch (const std::filesystem::filesystem_error& e) {
         logFile << "Filesystem error: " << e.what() << std::endl;
@@ -99,32 +101,79 @@ void SyncJsonFiles(const std::string& sourceFolder, const std::string& destinati
     }
 }
 
+void MergeAlignmentTxtFiles(const std::string& sourceFolder, const std::string& destinationFile) {
+    std::ofstream ofs(destinationFile);
+    if (!ofs.is_open()) {
+        return;
+    }
+
+    for (const auto& modderEntry : fs::directory_iterator(sourceFolder)) {
+        if (modderEntry.is_directory()) {
+            for (const auto& packageEntry : fs::directory_iterator(modderEntry.path())) {
+                if (packageEntry.is_directory()) {
+                    std::string txtFile = (packageEntry.path() / "alignment.txt").string();
+                    std::ifstream ifs(txtFile);
+                    if (ifs.is_open()) {
+                        ofs << ifs.rdbuf() << std::endl;
+                        ifs.close();
+                    }
+                }
+            }
+        }
+    }
+
+    ofs.close();
+}
+
+void CopyAlignmentJsonToOstimOriginal(const std::string& sourceFolder, const std::string& destinationFolder,
+                                      std::ofstream& logFile) {
+    std::string sourceFile = (fs::path(sourceFolder) / "alignment.json").string();
+    std::string destinationFile = (fs::path(destinationFolder) / "alignment.json").string();
+
+    if (fs::exists(sourceFile)) {
+        CreateDirectoryIfNotExists(fs::path(destinationFile).parent_path().string());
+        fs::copy_file(fs::path(sourceFile), fs::path(destinationFile), fs::copy_options::overwrite_existing);
+
+        // Convertir alignment.json a alignment.txt
+        std::ifstream ifs(sourceFile);
+        if (ifs.is_open()) {
+            std::string txtFile = (fs::path(destinationFolder) / "alignment.txt").string();
+            std::ofstream ofs(txtFile);
+            if (ofs.is_open()) {
+                ofs << ifs.rdbuf();
+                ofs.close();
+            }
+            ifs.close();
+        }
+    } else {
+        logFile << "No alignment.json found in OStim folder." << std::endl;
+    }
+}
+
 extern "C" bool SKSEPluginLoad(const SKSE::LoadInterface* skse) {
     SKSE::Init(skse);
 
-    // Este ejemplo imprime un arte ASCII de un gato en la consola de Skyrim y lo guarda en un archivo de log.
     SKSE::GetMessagingInterface()->RegisterListener([](SKSE::MessagingInterface::Message* message) {
         if (message->type == SKSE::MessagingInterface::kDataLoaded) {
-            // 1. Obtener la ruta de la carpeta "Documentos"
             std::string documentsPath = GetDocumentsPath();
 
             // Crear las carpetas necesarias
-            CreateDirectoryIfNotExists(documentsPath + "/My Games/Mantella/data/Skyrim/character_overrides/");
-            CreateDirectoryIfNotExists(documentsPath + "/My Games/Mantella/");
-            CreateDirectoryIfNotExists(documentsPath + "/My Games/Skyrim Special Edition/SKSE/");
+            CreateDirectoryIfNotExists(
+                documentsPath + "\\My Games\\Skyrim Special Edition\\OStim\\OMerge Alignment Animations NG Back");
+            CreateDirectoryIfNotExists(documentsPath + "\\My Games\\Skyrim Special Edition\\SKSE\\");
+            CreateDirectoryIfNotExists(
+                documentsPath +
+                "\\My Games\\Skyrim Special Edition\\OStim\\OMerge Alignment Animations NG Back\\Ostim Original");
 
             // Sincronizar los archivos JSON entre las carpetas de origen y destino
             std::string gamePath = GetGamePath();
-            std::string sourceFolder = (fs::path(gamePath) / "Data/Mantella BackHistory").make_preferred().string();
+            std::string sourceFolder = (fs::path(gamePath) / "Data\\OAlignment").string();
             std::string destinationFolder =
-                (fs::path(documentsPath) / "My Games/Mantella/data/Skyrim/character_overrides")
-                    .make_preferred()
+                (fs::path(documentsPath) /
+                 "My Games\\Skyrim Special Edition\\OStim\\OMerge Alignment Animations NG Back")
                     .string();
 
-            std::string logFilePath =
-                (fs::path(documentsPath) / "My Games/Mantella/Mantella-Adding-NPCs-Back-History-NG.log")
-                    .make_preferred()
-                    .string();
+            std::string logFilePath = (fs::path(destinationFolder) / "OMerge_SA_Alignment_Animations_NG.log").string();
             std::ofstream logFile(logFilePath);  // Abrir el archivo en modo de sobrescritura
             if (logFile.is_open()) {
                 auto now = std::chrono::system_clock::now();
@@ -136,29 +185,54 @@ extern "C" bool SKSEPluginLoad(const SKSE::LoadInterface* skse) {
                 std::locale::global(std::locale("en_US.UTF-8"));
 
                 logFile << "Log created on: " << std::put_time(&buf, "%Y-%m-%d %H:%M:%S") << std::endl;
-                logFile << "DLL Path: " << gamePath << "SKSE\\Plugins\\Mantella-Adding-NPCs-Back-History-NG.dll"
-                        << std::endl;
-                logFile << "Source Folder: " << sourceFolder << std::endl;
+                logFile << std::endl;
 
-                SyncJsonFiles(sourceFolder, destinationFolder, logFile);
+                CopyOAlignment(sourceFolder, destinationFolder, logFile);
+                CopyAlignmentJsonToOstimOriginal(
+                    (fs::path(documentsPath) / "My Games\\Skyrim Special Edition\\OStim").string(),
+                    (fs::path(destinationFolder) / "Ostim Original").string(), logFile);
 
                 logFile.close();
             }
 
-            // 2. Imprimir un arte ASCII de un gato en la consola de Skyrim
-            const char* catArt =
-                "Mantella NPCs Back History loaded successfully > ^ < .\n"
-                "\n"
-                "-------character_overrides-------\n"
-                "";
-            RE::ConsoleLog::GetSingleton()->Print(catArt);
-
+            // Copiar el archivo de log a la carpeta SKSE
             std::string logDestinationFile =
                 (fs::path(documentsPath) /
-                 "My Games/Skyrim Special Edition/SKSE/Mantella-Adding-NPCs-Back-History-NG.log")
-                    .make_preferred()
+                 "My Games\\Skyrim Special Edition\\SKSE\\OMerge_SA_Alignment_Animations_NG.log")
                     .string();
-            fs::copy_file(logFilePath, logDestinationFile, fs::copy_options::overwrite_existing);
+            fs::copy_file(fs::path(logFilePath), fs::path(logDestinationFile), fs::copy_options::overwrite_existing);
+
+            // Merge de todos los alignment.txt en un solo archivo alignment.txt en la carpeta OMerge Alignment
+            // Animations NG Back
+            std::string mergedTxtFile = (fs::path(destinationFolder) / "alignment.txt").string();
+            MergeAlignmentTxtFiles(destinationFolder, mergedTxtFile);
+
+                       // Copiar el archivo alignment.txt mergeado a la carpeta OStim y convertirlo a alignment.json
+            std::string ostimAlignmentTxtFile =
+                (fs::path(documentsPath) / "My Games\\Skyrim Special Edition\\OStim\\alignment.txt").string();
+            fs::copy_file(fs::path(mergedTxtFile), fs::path(ostimAlignmentTxtFile),
+                          fs::copy_options::overwrite_existing);
+
+            // Convertir alignment.txt a alignment.json
+            std::ifstream ifs(ostimAlignmentTxtFile);
+            if (ifs.is_open()) {
+                std::string jsonFile =
+                    (fs::path(documentsPath) / "My Games\\Skyrim Special Edition\\OStim\\alignment.json").string();
+                std::ofstream ofs(jsonFile);
+                if (ofs.is_open()) {
+                    ofs << ifs.rdbuf();
+                    ofs.close();
+                }
+                ifs.close();
+            }
+
+            // Imprimir un arte ASCII de un gato en la consola de Skyrim
+            const char* catArt =
+                "                        /\\_/\\  \n"
+                "                       ( o.o ) \n"
+                "                        > ^ <  \n"
+                "OMerge loaded successfully. don't forget to stay hydrated!";
+            RE::ConsoleLog::GetSingleton()->Print(catArt);
         }
     });
 
