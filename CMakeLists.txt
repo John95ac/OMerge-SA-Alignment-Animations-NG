@@ -3,7 +3,7 @@
 cmake_minimum_required(VERSION 3.21)
 
 # Set your project name. This will be the name of your SKSE .dll file.
-project(OMerge-SA-Alignment-Animations-NG VERSION 0.5.1 LANGUAGES CXX)
+project(OAlignment_Automatic_Merge_NG VERSION 1.0.0 LANGUAGES CXX)
 
 # #
 # YOU DO NOT NEED TO EDIT ANYTHING BELOW HERE
